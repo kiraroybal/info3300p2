@@ -7,6 +7,17 @@
     <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
     <style>
 
+      #map, #time {
+        display: block;
+        margin: auto;
+      }
+
+      h1 {
+        text-align: center;
+        font-family: Helvetica;
+        font-size: 48px;
+      }
+
       svg {
         border-width: 1px;
         border-style: solid;
@@ -17,7 +28,8 @@
   </head>
   <body>
 
-    <p>
+    <div id="page">
+        <h1></h1>
         <svg id="map" width="1350" height="750"></svg>
         <br>
         <input id="time" type="range" min="1965" max="2016" step="1" value="1965"/>
@@ -111,6 +123,8 @@
             .attr("cy", function (d) { return projection([d.Longitude, d.Latitude])[1]; })
             .attr("r", "4px")
             .attr("fill", "green");
+
+            d3.select("h1").text("Earthquakes, " + year)
           }
 
           d3.select("#time").on("input", function() {
@@ -118,7 +132,7 @@
           });
 
         </script>
-      </p>
+      </div>
 
   </body>
 </html>
