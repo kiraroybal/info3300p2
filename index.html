@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Earthquakes</title>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="http://d3js.org/topojson.v2.min.js"></script>
+    <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+    <style>
+
+      svg {
+        border-width: 1px;
+        border-style: solid;
+        border-color: black;
+      }
+
+    </style>
+  </head>
+  <body>
+
+    <p>
+        <svg id="svgp4" width="1350" height="750"></svg>
+        <br>
+        <input id="time" type="range" min="1965" max="2016" step="1" value="1965"/>
+
+        <script type="text/javascript">
+          var svg = d3.select("#svgp4");
+
+          var projection = d3.geoKavrayskiy7().scale(153);
+          var pathGenerator = d3.geoPath().projection(projection);
+
+          var countries;
+          var database;
+          var stats;
+
+          function parseDatabase(row) {
+            row.Latitude = +row.Latitude
+            row.Longitude = +row.Longitude
+          }
+
+          d3.queue()
+          .defer(d3.json, "world-50m.json")
+          .defer(d3.tsv, "world-country-names.tsv")
+          .defer(d3.csv, "earthquake-database.csv")
+          .defer(d3.csv, "earthquake-stats.csv")
+          .await(ready);
+
+          function ready(error, world, names, rawDatabase, rawStats) {
+
+            countries = topojson.feature(world, world.objects.countries);
+            countries.features = countries.features.filter(function(d) {
+              return names.some(function(n) {
+                if (d.id == n.id) return d.name = n.name;
+              });
+            }).sort(function(a, b) {
+              return a.name.localeCompare(b.name);
+            });
+
+            database = rawDatabase;
+            stats = rawStats;
+
+            showMap();
+          }
+
+          function showMap(year) {
+            // Create or modify paths for each country
+
+            projection.fitExtent([[0,0], [svg.attr("width"), svg.attr("height")]], countries);
+            pathGenerator = d3.geoPath().projection(projection);
+
+            var paths = svg.selectAll("path.country").data(countries.features);
+            paths.enter().append("path").attr("class", "country")
+            .merge(paths) 
+            .transition().duration(1000)
+            .style("fill", "white")
+            .style("stroke", "black")
+            .attr("d", function (country) {
+              return pathGenerator(country);
+            });
+            /*
+            var circles = svg.selectAll(".all").data(database);
+            circles.exit().remove()
+            circles.enter().append("circle")
+            .attr("class", "all")
+            .merge(circles)
+            .attr("cx", function (d) { return projection([d.Longitude, d.Latitude])[0]; })
+            .attr("cy", function (d) { return projection([d.Longitude, d.Latitude])[1]; })
+            .attr("r", "2px")
+            .attr("fill", "blue");
+            */
+
+            updateYear(1965);
+          }
+
+          function updateYear(year) {
+            console.log(year)
+
+            var year_data = database.filter(function (d) {
+              return Number(d.Date.split("/")[2]) == year;
+            });
+
+            var circles = svg.selectAll(".year").data(year_data);
+            circles.exit().remove()
+            circles.enter().append("circle")
+            .attr("class", "year")
+            .merge(circles)
+            .attr("cx", function (d) { return projection([d.Longitude, d.Latitude])[0]; })
+            .attr("cy", function (d) { return projection([d.Longitude, d.Latitude])[1]; })
+            .attr("r", "4px")
+            .attr("fill", "green");
+          }
+
+          d3.select("#time").on("input", function() {
+            updateYear(+this.value);
+          });
+
+        </script>
+      </p>
+
+  </body>
+</html>
