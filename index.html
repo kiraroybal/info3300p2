@@ -24,15 +24,23 @@
         border-color: black;
       }
 
+      input.slider { 
+        width: 300px; 
+      }
+
+      .ticks {
+        font: 10px sans-serif;
+      }
+
     </style>
   </head>
   <body>
 
     <div id="page">
         <h1></h1>
-        <svg id="map" width="1350" height="750"></svg>
-        <br>
-        <input id="time" type="range" min="1965" max="2016" step="1" value="1965"/>
+        <svg id="map" width="1350" height="750"></svg>   
+    </div>
+    <p id="slider"></p>
 
         <script type="text/javascript">
           var mapSvg = d3.select("#map");
@@ -73,6 +81,9 @@
             tectonicPlates = topojson.feature(plates, plates.objects.collection);
             database = rawDatabase;
             stats = rawStats;
+            //console.log(stats)
+            //console.log(database)
+            //console.log(countries.features[1])
 
             showMap();
           }
@@ -98,21 +109,31 @@
             var countryPaths = mapSvg.selectAll("path.country").data(countries.features);
             countryPaths.enter().append("path").attr("class", "country")
             .merge(countryPaths) 
-            .transition().duration(1000)
+            .transition().duration(10)
             .style("fill", "white")
             .style("stroke", "black")
             .attr("d", function (country) {
               return pathGenerator(country);
             });
 
-            updateYear(1965);
-          }
+            updateYear(1965); //default year
+          };
+
+          var yearSlider = d3.select("#slider")
+          .append("div")
+          .style("float", "top")
+          .text("Drag the slider to see earthquakes over time.")
+          .append("input").attr("type", "range").attr("class", "slider")
+          .attr("min", 1965)
+          .attr("max", 2016)
+          .attr("value", 1965);
 
           function updateYear(year) {
 
             var year_data = database.filter(function (d) {
               return Number(d.Date.split("/")[2]) == year;
             });
+            //console.log(year_data)
 
             var circles = mapSvg.selectAll(".year").data(year_data);
             circles.exit().remove()
@@ -127,9 +148,15 @@
             d3.select("h1").text("Earthquakes, " + year)
           }
 
-          d3.select("#time").on("input", function() {
+          yearSlider.on("input", function() {
             updateYear(+this.value);
           });
+          
+        //   <form action="/action_page.php">
+        // Drag the slider to see earthquakes over time. <input id="time" type="range" min="1965" max="2016" step="1" value="1965">
+        // </form>
+
+          
 
         </script>
       </div>
