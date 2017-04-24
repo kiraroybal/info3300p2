@@ -139,7 +139,7 @@
             // Throw out stats with no corresponding country (less than 5% of dataset)
             stats = stats.filter(function (d) {
               return countries.features.some(function (n) {
-                var dname = d.country.toLowerCase()
+                var dname = d.country.toLowerCase().split(":")[0]
                 var nname = n.name.toLowerCase().split(" and ")
                 if (nname.some(k => dname.includes(k))) {
                   d.country = n.name
@@ -331,6 +331,7 @@
           function mouseoverCountry(d) {
 
             currentCountry = d.data.country
+            console.log(currentCountry)
 
             var width = mapSvg.attr("width")
             var height = mapSvg.attr("height")
@@ -341,6 +342,24 @@
               .map(d => projection([d.lng, d.lat]))
 
             var bounds = countryBounds
+            for (var i; i < earthquakeLocations.length; i++) {
+              var loc = earthquakeLocations[i]
+              var lng = loc[0]
+              var lat = loc[1]
+              if (lng < bounds[0][0]) {
+                bounds[0][0] = lng
+              }
+              if (lng > bounds[1][0]) {
+                bounds[1][0] = lng
+              }
+              if (lat < bounds[0][1]) {
+                bounds[0][1] = lat
+              }
+              if (lat > bounds[1][1]) {
+                bounds[1][1] = lat
+              }
+            }
+
             var dx = bounds[1][0] - bounds[0][0]
             var dy = bounds[1][1] - bounds[0][1]
             var x = (bounds[0][0] + bounds[1][0]) / 2
@@ -353,16 +372,17 @@
               .duration(ZOOM_TIME)
               .attr("transform", "translate(" + translate + ")scale(" + scale + ")")
               .tween("others", function () {
-
-                var selected = damagedGroup.selectAll(".damaged")
-                  .filter(d => d.name == currentCountry)
-                var unselected = damagedGroup.selectAll(".damaged")
+                
+                var damagedUnselected = damagedGroup.selectAll(".damaged")
                   .filter(d => d.name != currentCountry)
+                var damagedSelected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name == currentCountry)
                 var disasters = disastersGroup.selectAll(".disaster")
-
-                console.log(selected)
-                console.log(unselected)
-
+                var disastersUnselected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country != currentCountry)
+                var disastersSelected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country == currentCountry)
+                
                 var i1 = d3.interpolateString(
                   platesGroup.style("stroke-width"), 
                   (4 / scale) + "px")
@@ -370,10 +390,10 @@
                   countriesGroup.style("stroke-width"), 
                   (1 / scale) + "px")
                 var i3 = d3.interpolateString(
-                  unselected.style("opacity"),
+                  damagedUnselected.style("opacity"),
                   "0")
                 var i4 = d3.interpolateString(
-                  selected.style("opacity"),
+                  damagedSelected.style("opacity"),
                   "1")
                 var i5 = d3.interpolateString(
                   earthquakesGroup.style("opacity"),
@@ -381,14 +401,22 @@
                 var i6 = d3.interpolateString(
                   disasters.attr("r"),
                   16 / scale + "px")
+                var i7 = d3.interpolateString(
+                  disastersUnselected.style("opacity"),
+                  "0")
+                var i8 = d3.interpolateString(
+                  disastersSelected.style("opacity"),
+                  "1")
 
                 return function(t) {
                   platesGroup.style("stroke-width", i1(t))
                   countriesGroup.style("stroke-width", i2(t))
-                  unselected.style("opacity", i3(t))
-                  selected.style("opacity", i4(t))
+                  damagedUnselected.style("opacity", i3(t))
+                  damagedSelected.style("opacity", i4(t))
                   earthquakesGroup.style("opacity", i5(t))
                   disasters.attr("r", i6(t))
+                  disastersUnselected.style("opacity", i7(t))
+                  disastersSelected.style("opacity", i8(t))
                 }
               })
 
@@ -401,13 +429,16 @@
               .attr("stroke-width", 1).attr("transform", "")
               .tween("others", function () {
 
-                var selected = damagedGroup.selectAll(".damaged")
-                  .filter(d => d.name == currentCountry)
-                var unselected = damagedGroup.selectAll(".damaged")
+                var damagedUnselected = damagedGroup.selectAll(".damaged")
                   .filter(d => d.name != currentCountry)
+                var damagedSelected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name == currentCountry)
                 var disasters = disastersGroup.selectAll(".disaster")
-
-
+                var disastersUnselected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country != currentCountry)
+                var disastersSelected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country == currentCountry)
+                
                 var i1 = d3.interpolateString(
                   platesGroup.style("stroke-width"), 
                   1 + "px")
@@ -415,25 +446,33 @@
                   countriesGroup.style("stroke-width"), 
                   1 + "px")
                 var i3 = d3.interpolateString(
-                  unselected.style("opacity"),
+                  damagedUnselected.style("opacity"),
                   "1")
                 var i4 = d3.interpolateString(
-                  selected.style("opacity"),
+                  damagedSelected.style("opacity"),
                   "1")
                 var i5 = d3.interpolateString(
                   earthquakesGroup.style("opacity"),
                   "1")
-               var i6 = d3.interpolateString(
+                var i6 = d3.interpolateString(
                   disasters.attr("r"),
                   4 + "px")
+                var i7 = d3.interpolateString(
+                  disastersUnselected.style("opacity"),
+                  "1")
+                var i8 = d3.interpolateString(
+                  disastersSelected.style("opacity"),
+                  "1")
 
                 return function(t) {
                   platesGroup.style("stroke-width", i1(t))
                   countriesGroup.style("stroke-width", i2(t))
-                  unselected.style("opacity", i3(t))
-                  selected.style("opacity", i4(t))
+                  damagedUnselected.style("opacity", i3(t))
+                  damagedSelected.style("opacity", i4(t))
                   earthquakesGroup.style("opacity", i5(t))
                   disasters.attr("r", i6(t))
+                  disastersUnselected.style("opacity", i7(t))
+                  disastersSelected.style("opacity", i8(t))
                 }
               })
               .on("end", function () {
