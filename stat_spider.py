@@ -14,7 +14,7 @@ class StatSpider(scrapy.Spider):
       td = r.css('td::text').extract()
       print(td)
       yield {
-        'date': "{}/{}/{}".format(td[2], td[1], td[0]),
+        'date': "{}/{}/{}".format(td[1], td[2], td[0]),
         'year': int(td[0]),
         'time': "{}:{}".format(td[3], td[4]),
         'country': td[6],

@@ -74,7 +74,8 @@
           var statsYear
           var countriesYear
           var depthExtent 
-          var currentCountry = ""
+          var currentCountry
+          var currentDisaster
 
           // SVGs
           var mapSvg = d3.select("#map")
@@ -400,7 +401,6 @@
               .on("mouseover", mouseoverCountry)
               .on("mouseout", mouseoutCountry)
 
-
             pieSvg.selectAll(".arc-disaster").remove()
             var disasterData = []
             for (var i = 0; i < countryDeaths.length; i++) {
@@ -415,7 +415,6 @@
               
               for (var j = 0; j < statsEach.length; j++) {
                 pieSvg.append("path")
-                  .datum(statsEach[j])
                   .attr("class", "arc-disaster")
                   .attr("d", arcEach(pieEachData[j]))  
                   .attr("transform", "translate(" + pieSvg.attr("width") / 2 + "," + (pieSvg.attr("height") / 2 + 25) + ")")
@@ -423,6 +422,9 @@
                   .style("stroke", "white")
                   .style("stroke-width", 2)
                   .style("opacity", 1)
+                  .datum(statsEach[j])
+                  .on("mouseover", mouseoverDisaster)
+                  .on("mouseout", mouseoutDisaster)
               }
             }
 
@@ -600,6 +602,186 @@
               })
               .on("end", function () {
                 currentCountry = null
+              })
+
+            var totalDeaths = d3.sum(statsYear, d => d.deaths)
+            var numberDisasters = statsYear.length
+            statText1.text("")
+            statText2.text(totalDeaths + " Deaths")
+            statText3.text(numberDisasters + " Disasters")
+          }
+
+          // Mouseover callback for country in pie char
+          function mouseoverDisaster(datum) {
+
+            // Assign current country
+            currentCountry = datum.country
+            currentDisaster = datum
+
+            // Get the width and height of the map SVG
+            var width = mapSvg.attr("width")
+            var height = mapSvg.attr("height")
+
+            // Compute bounds for the country we are looking at
+            var countryBounds = pathGenerator.bounds(countriesYear
+                .filter(d => d.name == currentCountry)[0])
+            // Compute the earthquake locations
+            var earthquakeLocations = statsYear.filter(d => d.country == currentCountry)
+              .map(d => projection([d.lng, d.lat]))
+
+            // Update bounds to include the earthquakes
+            var bounds = countryBounds
+            for (var i; i < earthquakeLocations.length; i++) {
+              var loc = earthquakeLocations[i]
+              var lng = loc[0]
+              var lat = loc[1]
+              if (lng < bounds[0][0]) {
+                bounds[0][0] = lng
+              }
+              if (lng > bounds[1][0]) {
+                bounds[1][0] = lng
+              }
+              if (lat > bounds[0][1]) {
+                bounds[0][1] = lat
+              }
+              if (lat < bounds[1][1]) {
+                bounds[1][1] = lat
+              }
+            }
+
+            // Compute the scale and translate
+            var dx = bounds[1][0] - bounds[0][0]
+            var dy = bounds[1][1] - bounds[0][1]
+            var x = (bounds[0][0] + bounds[1][0]) / 2
+            var y = (bounds[0][1] + bounds[1][1]) / 2
+            var scale = .9 / Math.max(dx / width, dy / height)
+            var translate = [width / 2 - scale * x, height / 2 - scale * y]
+
+            // Zoom to the bounding box
+            mapGroup
+              .transition()
+              .duration(ZOOM_TIME)
+              .attr("transform", "translate(" + translate + ")scale(" + scale + ")")
+              .tween("others", function () {
+                
+                // Select various elements corresponding to the current country
+                // as well as others
+                var damagedUnselected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name != currentCountry)
+                var damagedSelected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name == currentCountry)
+                var disasters = disastersGroup.selectAll(".disaster")
+                var disastersUnselected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country != currentCountry || d.date != currentDisaster.date || d.time != currentDisaster.time)
+                var disastersSelected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country == currentCountry && d.date == currentDisaster.date && d.time == currentDisaster.time)
+                
+                // Perform various scales and fades to look nice
+                var i1 = d3.interpolateString(
+                  platesGroup.style("stroke-width"), 
+                  (4 / scale) + "px")
+                var i2 = d3.interpolateString(
+                  countriesGroup.style("stroke-width"), 
+                  (1 / scale) + "px")
+                var i3 = d3.interpolateString(
+                  damagedUnselected.style("opacity"),
+                  "0")
+                var i4 = d3.interpolateString(
+                  damagedSelected.style("opacity"),
+                  "1")
+                var i5 = d3.interpolateString(
+                  earthquakesGroup.style("opacity"),
+                  "0")
+                var i6 = d3.interpolateString(
+                  disasters.attr("r"),
+                  8 / scale + "px")
+                var i7 = d3.interpolateString(
+                  disastersUnselected.style("opacity"),
+                  "0")
+                var i8 = d3.interpolateString(
+                  disastersSelected.style("opacity"),
+                  "1")
+
+                return function(t) {
+                  platesGroup.style("stroke-width", i1(t))
+                  countriesGroup.style("stroke-width", i2(t))
+                  damagedUnselected.style("opacity", i3(t))
+                  damagedSelected.style("opacity", i4(t))
+                  earthquakesGroup.style("opacity", i5(t))
+                  disasters.attr("r", i6(t))
+                  disastersUnselected.style("opacity", i7(t))
+                  disastersSelected.style("opacity", i8(t))
+                }
+              })
+
+            var statsCurrentCountry = statsYear.filter(d => d.country == currentCountry) 
+            var totalDeaths = d3.sum(statsCurrentCountry, d => d.deaths)
+            var numberDisasters = statsCurrentCountry.length
+            statText1.text(currentCountry)
+            statText2.text(currentDisaster.deaths + " Deaths")
+            statText3.text(currentDisaster.date)
+          }
+
+          function mouseoutDisaster(d) {
+
+            // Zoom back out
+            mapGroup.transition()
+              .duration(ZOOM_TIME)
+              .attr("stroke-width", 1).attr("transform", "")
+              .tween("others", function () {
+
+                // Select various elements corresponding to the current country
+                // as well as others
+                var damagedUnselected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name != currentCountry)
+                var damagedSelected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name == currentCountry)
+                var disasters = disastersGroup.selectAll(".disaster")
+                var disastersUnselected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country != currentCountry || d.date != currentDisaster.date || d.time != currentDisaster.time)
+                var disastersSelected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country == currentCountry && d.date == currentDisaster.date && d.time == currentDisaster.time)
+                
+                // Perform various scales and fades to look nice
+                var i1 = d3.interpolateString(
+                  platesGroup.style("stroke-width"), 
+                  1 + "px")
+                var i2 = d3.interpolateString(
+                  countriesGroup.style("stroke-width"), 
+                  1 + "px")
+                var i3 = d3.interpolateString(
+                  damagedUnselected.style("opacity"),
+                  "1")
+                var i4 = d3.interpolateString(
+                  damagedSelected.style("opacity"),
+                  "1")
+                var i5 = d3.interpolateString(
+                  earthquakesGroup.style("opacity"),
+                  "1")
+                var i6 = d3.interpolateString(
+                  disasters.attr("r"),
+                  4 + "px")
+                var i7 = d3.interpolateString(
+                  disastersUnselected.style("opacity"),
+                  "1")
+                var i8 = d3.interpolateString(
+                  disastersSelected.style("opacity"),
+                  "1")
+
+                return function(t) {
+                  platesGroup.style("stroke-width", i1(t))
+                  countriesGroup.style("stroke-width", i2(t))
+                  damagedUnselected.style("opacity", i3(t))
+                  damagedSelected.style("opacity", i4(t))
+                  earthquakesGroup.style("opacity", i5(t))
+                  disasters.attr("r", i6(t))
+                  disastersUnselected.style("opacity", i7(t))
+                  disastersSelected.style("opacity", i8(t))
+                }
+              })
+              .on("end", function () {
+                currentCountry = null
+                currentDisaster = null
               })
 
             var totalDeaths = d3.sum(statsYear, d => d.deaths)
