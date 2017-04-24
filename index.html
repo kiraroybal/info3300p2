@@ -37,11 +37,12 @@
           var plates
           var database
           var stats
-          var statsYear;
-          var countriesYear;
 
           // "Indicator" variables for data
           var currentYear = YEAR_MIN
+          var databaseYear
+          var statsYear
+          var countriesYear
           var depthExtent 
           var currentCountry = ""
 
@@ -49,13 +50,41 @@
           var mapSvg = d3.select("#map")
           var timeSvg = d3.select("#time")
           var pieSvg = d3.select("#pie")
-          var mapGroup = mapSvg.append("g")
           // Groups for each set of things we render
+          var mapGroup = mapSvg.append("g")
           var platesGroup = mapGroup.append("g")
           var countriesGroup = mapGroup.append("g")
           var damagedGroup = mapGroup.append("g")
           var earthquakesGroup = mapGroup.append("g")
           var disastersGroup = mapGroup.append("g")
+          var statText1 = pieSvg.append("text")
+          statText1.attr("x", 150)
+            .attr("y", 25)
+            .attr("text-anchor", "middle")
+            .style("font-size", 24)
+            .style("font-family", "Helvetica")
+            .style("alignment-baseline", "central")
+          var statText2 = pieSvg.append("text")
+          statText2.attr("x", 150)
+            .attr("y", 55)
+            .attr("text-anchor", "middle")
+            .style("font-size", 24)
+            .style("font-family", "Helvetica")
+            .style("alignment-baseline", "central")
+          var statText3 = pieSvg.append("text")
+          statText3.attr("x", 150)
+            .attr("y", 85)
+            .attr("text-anchor", "middle")
+            .style("font-size", 24)
+            .style("font-family", "Helvetica")
+            .style("alignment-baseline", "central") 
+          var statText4 = pieSvg.append("text")
+          statText4.attr("x", 150)
+            .attr("y", 115)
+            .attr("text-anchor", "middle")
+            .style("font-size", 24)
+            .style("font-family", "Helvetica")
+            .style("alignment-baseline", "central")         
           // Locks for concurrent transitions
           var platesGroupLock
           var countriesGroupLock
@@ -213,7 +242,7 @@
           function updateYear(year) {
 
             // Filter data by year
-            var databaseYear = database.filter(function (d) {
+            databaseYear = database.filter(function (d) {
               return d.year == year
             })
 
@@ -268,14 +297,16 @@
               .style("fill", "blue")
               .style("opacity", 1)
             
-            updateDonut(statsYear)
+            statText4.text(databaseYear.length + " Earthquakes")
+
+            updateDonut()
 
             // Update the header
             d3.select("h1").text("Earthquakes versus Us: " + year)
           }
 
           // Draw the pie chart displaying countries affected
-          function updateDonut(statsYear) {
+          function updateDonut() {
             // Determine the radious for the pie chart
             var radius = Math.min(pieSvg.attr("width"), pieSvg.attr("height")) / 2
             
@@ -289,6 +320,9 @@
                 countriesDamaged[stat.country] = countriesDamaged[stat.country] + stat.deaths
               }
             }
+
+            var totalDeaths = d3.sum(statsYear, d => d.deaths)
+            var numberDisasters = statsYear.length
 
             // Convert this JSON into an array
             var countryDeaths = []
@@ -308,8 +342,8 @@
 
             // An arc configure for maximum donutness
             var arc = d3.arc()
-            .innerRadius(radius * 4 / 8)
-            .outerRadius(radius * 6 / 8)
+            .innerRadius(radius * 3 / 8)
+            .outerRadius(radius * 7 / 8)
 
             // Draw the arc for country
             var arcsStat = pieSvg.selectAll(".arc").data(pie(countryDeaths))
@@ -319,19 +353,22 @@
               .attr("class", "arc")
               .merge(arcsStat)
               .attr("d", arc)
-              .attr("transform", "translate(" + pieSvg.attr("width") / 2 + "," + pieSvg.attr("height") / 2 + ")")
+              .attr("transform", "translate(" + pieSvg.attr("width") / 2 + "," + (pieSvg.attr("height") / 2 + 25) + ")")
               .style("fill", "orange")
               .style("stroke", "white")
               .style("opacity", 1)
               .on("mouseover", mouseoverCountry)
               .on("mouseout", mouseoutCountry)
+
+            statText2.text(totalDeaths + " Deaths")
+            statText3.text(numberDisasters + " Disasters")
+            
           }
 
           // Mouseover callback for country in pie char
           function mouseoverCountry(d) {
 
             currentCountry = d.data.country
-            console.log(currentCountry)
 
             var width = mapSvg.attr("width")
             var height = mapSvg.attr("height")
