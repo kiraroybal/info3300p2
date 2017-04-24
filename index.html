@@ -86,8 +86,18 @@
           var currentCountry
           var currentDisaster
 
+          var zoom = d3.zoom()
+            .translateExtent(
+              [[-200, -200],
+               [1100, 700]]
+              )
+            .scaleExtent([1, 16])
+            .on("zoom", zoomed);
+
           // SVGs
           var mapSvg = d3.select("#map")
+          mapSvg.on("click", stopped, true)
+            .call(zoom)
           var timeSvg = d3.select("#time")
           var pieSvg = d3.select("#pie")
           var mapRect = mapSvg.append("rect")
@@ -147,18 +157,6 @@
             handler: null
           }
 
-          var zoom = d3.zoom()
-            .translateExtent(
-              [[-200, -200],
-               [1100, 700]]
-              )
-            .scaleExtent([1, 16])
-            .on("zoom", zoomed);
-
-          mapSvg.on("click", stopped, true)
-            .call(zoom)
-          mapRect.on("click", reset)
-
           function stopped() {
             if (d3.event.defaultPrevented) d3.event.stopPropagation();
           }
@@ -175,11 +173,10 @@
           }
 
           function reset() {
-            platesGroup.style("stroke-width", PATH_THICK)
-            countriesGroup.style("stroke-width", PATH_THICK)
-            earthquakesGroup.selectAll("*").attr("r", PLOT_RADIUS)
-            disastersGroup.selectAll("*").attr("r", PLOT_RADIUS)
-            mapGroup.attr("transform", "");
+            var initialTransform = d3.zoomIdentity
+              .translate(0,0)
+              .scale(1);
+            mapSvg.call(zoom.transform, initialTransform)
           }
 
           // Turn each value in a row of the database into a something workable
