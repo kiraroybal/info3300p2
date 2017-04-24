@@ -23,7 +23,14 @@
       }
 
       td {
+        font-size: 16;
         font-family: Helvetica;
+      }
+
+      svg text {
+        font-size: 24;
+        font-family: Helvetica;
+        alignment-baseline: central;
       }
 
     </style>
@@ -61,6 +68,8 @@
           var YEAR_MIN = 1965
           var YEAR_MAX = 2016
           var ZOOM_TIME = 400
+          var PLOT_RADIUS = 6
+          var PATH_THICK = 1
 
           // The data we are visualizing
           var countries
@@ -81,6 +90,13 @@
           var mapSvg = d3.select("#map")
           var timeSvg = d3.select("#time")
           var pieSvg = d3.select("#pie")
+          var mapRect = mapSvg.append("rect")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("width", mapSvg.attr("width"))
+            .attr("height", mapSvg.attr("height"))
+            .style("fill", "white")
+            .on("click", reset);
           // Groups for each set of things we render
           var mapGroup = mapSvg.append("g")
           var platesGroup = mapGroup.append("g")
@@ -92,36 +108,18 @@
           statText1.attr("x", 150)
             .attr("y", 25)
             .attr("text-anchor", "middle")
-            .style("font-size", 24)
-            .style("font-family", "Helvetica")
-            .style("alignment-baseline", "central")
           var statText2 = pieSvg.append("text")
           statText2.attr("x", 150)
             .attr("y", 55)
             .attr("text-anchor", "middle")
-            .style("font-size", 24)
-            .style("font-family", "Helvetica")
-            .style("alignment-baseline", "central")
           var statText3 = pieSvg.append("text")
           statText3.attr("x", 150)
             .attr("y", 85)
             .attr("text-anchor", "middle")
-            .style("font-size", 24)
-            .style("font-family", "Helvetica")
-            .style("alignment-baseline", "central") 
           var statText4 = pieSvg.append("text")
           statText4.attr("x", 150)
             .attr("y", 115)
             .attr("text-anchor", "middle")
-            .style("font-size", 24)
-            .style("font-family", "Helvetica")
-            .style("alignment-baseline", "central")         
-          // Locks for concurrent transitions
-          var platesGroupLock
-          var countriesGroupLock
-          var damagedGroupLock
-          var earthquakesGroupLock
-          var disastersGroupLock
           
           // Projection and path generators for map
           var projection = d3.geoKavrayskiy7()
@@ -147,6 +145,41 @@
             radius: 10,
             axis: null,
             handler: null
+          }
+
+          var zoom = d3.zoom()
+            .translateExtent(
+              [[-200, -200],
+               [1100, 700]]
+              )
+            .scaleExtent([1, 16])
+            .on("zoom", zoomed);
+
+          mapSvg.on("click", stopped, true)
+            .call(zoom)
+          mapRect.on("click", reset)
+
+          function stopped() {
+            if (d3.event.defaultPrevented) d3.event.stopPropagation();
+          }
+
+          function zoomed() {
+            var transform = d3.event.transform
+            var scale = transform.k
+
+            platesGroup.style("stroke-width", PATH_THICK / scale)
+            countriesGroup.style("stroke-width", PATH_THICK / scale)
+            earthquakesGroup.selectAll("*").attr("r", PLOT_RADIUS / scale)
+            disastersGroup.selectAll("*").attr("r", PLOT_RADIUS / scale)
+            mapGroup.attr("transform", transform);
+          }
+
+          function reset() {
+            platesGroup.style("stroke-width", PATH_THICK)
+            countriesGroup.style("stroke-width", PATH_THICK)
+            earthquakesGroup.selectAll("*").attr("r", PLOT_RADIUS)
+            disastersGroup.selectAll("*").attr("r", PLOT_RADIUS)
+            mapGroup.attr("transform", "");
           }
 
           // Turn each value in a row of the database into a something workable
@@ -259,7 +292,7 @@
               .attr("class", "plate")
               .merge(pathsPlate) 
               .attr("d", pathGenerator)
-              .style("fill", "white")
+              .style("fill", "none")
               .style("stroke", "green")
               .style("opacity", 0.2)
 
@@ -271,7 +304,7 @@
               .attr("class", "country")
               .merge(pathsCountry) 
               .attr("d", pathGenerator)
-              .style("fill", "white")
+              .style("fill", "none")
               .style("stroke", "black")
 
           }
@@ -318,7 +351,7 @@
               .merge(circlesEarthquake)
               .attr("cx", function (d) { return projection([d.lng, d.lat])[0] })
               .attr("cy", function (d) { return projection([d.lng, d.lat])[1] })
-              .attr("r", 4)
+              .attr("r", PLOT_RADIUS)
               .style("fill", "blue")
               .style("opacity", 1)
               .on("mouseover", mouseoverEarthquake)
@@ -333,7 +366,7 @@
               .merge(circlesDisaster)
               .attr("cx", function (d) { return projection([d.lng, d.lat])[0] })
               .attr("cy", function (d) { return projection([d.lng, d.lat])[1] })
-              .attr("r", 4)
+              .attr("r", PLOT_RADIUS)
               .style("fill", "blue")
               .style("opacity", 1)
               .on("mouseover", mouseoverEarthquake)
@@ -344,7 +377,7 @@
             updateDonut()
 
             // Update the header
-            d3.select("h1").text("Earthquakes versus Us: " + year)
+            d3.select("h1").text("Significant Earthquakes and Human Mortality: " + year)
           }
 
           function mouseoverEarthquake(d) {
@@ -527,10 +560,10 @@
                 // Perform various scales and fades to look nice
                 var i1 = d3.interpolateString(
                   platesGroup.style("stroke-width"), 
-                  (4 / scale) + "px")
+                  (4 * PATH_THICK / scale) + "px")
                 var i2 = d3.interpolateString(
                   countriesGroup.style("stroke-width"), 
-                  (1 / scale) + "px")
+                  (PATH_THICK / scale) + "px")
                 var i3 = d3.interpolateString(
                   damagedUnselected.style("opacity"),
                   "0")
@@ -542,7 +575,7 @@
                   "0")
                 var i6 = d3.interpolateString(
                   disasters.attr("r"),
-                  8 / scale + "px")
+                  2 * PLOT_RADIUS / scale + "px")
                 var i7 = d3.interpolateString(
                   disastersUnselected.style("opacity"),
                   "0")
@@ -560,6 +593,9 @@
                   disastersUnselected.style("opacity", i7(t))
                   disastersSelected.style("opacity", i8(t))
                 }
+              })
+              .on("end", function() {
+                earthquakesGroup.selectAll("*").attr("r", PLOT_RADIUS)
               })
 
             var statsCurrentCountry = statsYear.filter(d => d.country == currentCountry) 
@@ -593,10 +629,10 @@
                 // Perform various scales and fades to look nice
                 var i1 = d3.interpolateString(
                   platesGroup.style("stroke-width"), 
-                  1 + "px")
+                  PATH_THICK + "px")
                 var i2 = d3.interpolateString(
                   countriesGroup.style("stroke-width"), 
-                  1 + "px")
+                  PATH_THICK + "px")
                 var i3 = d3.interpolateString(
                   damagedUnselected.style("opacity"),
                   "1")
@@ -608,7 +644,7 @@
                   "1")
                 var i6 = d3.interpolateString(
                   disasters.attr("r"),
-                  4 + "px")
+                  PLOT_RADIUS + "px")
                 var i7 = d3.interpolateString(
                   disastersUnselected.style("opacity"),
                   "1")
@@ -718,10 +754,10 @@
                 // Perform various scales and fades to look nice
                 var i1 = d3.interpolateString(
                   platesGroup.style("stroke-width"), 
-                  (4 / scale) + "px")
+                  (4 * PATH_THICK / scale) + "px")
                 var i2 = d3.interpolateString(
                   countriesGroup.style("stroke-width"), 
-                  (1 / scale) + "px")
+                  (PATH_THICK / scale) + "px")
                 var i3 = d3.interpolateString(
                   damagedUnselected.style("opacity"),
                   "0")
@@ -733,7 +769,7 @@
                   "0")
                 var i6 = d3.interpolateString(
                   disasters.attr("r"),
-                  8 / scale + "px")
+                  2 * PLOT_RADIUS / scale + "px")
                 var i7 = d3.interpolateString(
                   disastersUnselected.style("opacity"),
                   "0")
@@ -751,6 +787,9 @@
                   disastersUnselected.style("opacity", i7(t))
                   disastersSelected.style("opacity", i8(t))
                 }
+              })
+              .on("end", function() {
+                earthquakesGroup.selectAll("*").attr("r", PLOT_RADIUS)
               })
 
             mouseoverEarthquake(currentDisaster)
@@ -786,10 +825,10 @@
                 // Perform various scales and fades to look nice
                 var i1 = d3.interpolateString(
                   platesGroup.style("stroke-width"), 
-                  1 + "px")
+                  PATH_THICK + "px")
                 var i2 = d3.interpolateString(
                   countriesGroup.style("stroke-width"), 
-                  1 + "px")
+                  PATH_THICK + "px")
                 var i3 = d3.interpolateString(
                   damagedUnselected.style("opacity"),
                   "1")
@@ -801,7 +840,7 @@
                   "1")
                 var i6 = d3.interpolateString(
                   disasters.attr("r"),
-                  4 + "px")
+                  PLOT_RADIUS + "px")
                 var i7 = d3.interpolateString(
                   disastersUnselected.style("opacity"),
                   "1")
