@@ -19,7 +19,7 @@
 
     <div id="page">
         <h1></h1>
-        <svg id="map" width="1000" height="500"></svg>
+          <svg id="map" width="1000" height="500"></svg>
         <svg id="pie" width="300" height="500"></svg>   
         <br>
         <svg id="time" width="1000" height="70"></svg>   
@@ -30,25 +30,46 @@
           // Constants
           var YEAR_MIN = 1965
           var YEAR_MAX = 2016
-          
+          var ZOOM_TIME = 400
+
           // The data we are visualizing
           var countries
           var plates
           var database
           var stats
+          var statsYear;
+          var countriesYear;
 
           // "Indicator" variables for data
           var currentYear = YEAR_MIN
           var depthExtent 
-          var currentCountry
+          var currentCountry = ""
 
           // SVGs
           var mapSvg = d3.select("#map")
           var timeSvg = d3.select("#time")
           var pieSvg = d3.select("#pie")
-
+          var mapGroup = mapSvg.append("g")
+          // Groups for each set of things we render
+          var platesGroup = mapGroup.append("g")
+          var countriesGroup = mapGroup.append("g")
+          var damagedGroup = mapGroup.append("g")
+          var earthquakesGroup = mapGroup.append("g")
+          var disastersGroup = mapGroup.append("g")
+          // Locks for concurrent transitions
+          var platesGroupLock
+          var countriesGroupLock
+          var damagedGroupLock
+          var earthquakesGroupLock
+          var disastersGroupLock
+          
           // Projection and path generators for map
-          var projection = d3.geoKavrayskiy7().scale(153)
+          var projection = d3.geoKavrayskiy7()
+            .scale(153)
+            .fitExtent([[0,0], 
+                [mapSvg.attr("width"), mapSvg.attr("height")]
+              ], 
+              countries)
           var pathGenerator = d3.geoPath().projection(projection)
 
           // A representation of the slider
@@ -138,6 +159,15 @@
               return found ? false : true
             })
 
+            // Projection and path generators for map
+            projection = d3.geoKavrayskiy7()
+              .scale(153)
+              .fitExtent([[0,0], 
+                  [mapSvg.attr("width"), mapSvg.attr("height")]
+                ], 
+                countries)
+            pathGenerator = d3.geoPath().projection(projection)
+
             // Pre-compute useful information about the datasets
             depthExtent = d3.extent(database, d => d.depth)
 
@@ -154,70 +184,28 @@
 
           // Load our map with some config constraints
           function loadMap() {
-            var width = mapSvg.attr("width")
-            var height = mapSvg.attr("height")
-
-            // Draw the map
-            projection.fitExtent([[0,0], [width, height]], countries)
-            pathGenerator = d3.geoPath().projection(projection)
-
             // Draw the tectonic plates
-            var tectonicPaths = mapSvg.selectAll("path.tectonic").data(plates.features)
-            tectonicPaths.enter()
+            var pathsPlate = platesGroup.selectAll(".plate").data(plates.features)
+            pathsPlate.exit().remove()
+            pathsPlate.enter()
               .append("path")
-              .attr("class", "tectonic")
-              .merge(tectonicPaths) 
+              .attr("class", "plate")
+              .merge(pathsPlate) 
               .attr("d", pathGenerator)
               .style("fill", "white")
               .style("stroke", "green")
-              .style("stroke-width", 1)
               .style("opacity", 0.2)
 
             // Draw the countries
-            var countryPaths = mapSvg.selectAll("path.country").data(countries.features)
-            countryPaths.enter()
+            var pathsCountry = countriesGroup.selectAll(".country").data(countries.features)
+            pathsCountry.exit().remove()
+            pathsCountry.enter()
               .append("path")
               .attr("class", "country")
-              .merge(countryPaths) 
+              .merge(pathsCountry) 
               .attr("d", pathGenerator)
               .style("fill", "white")
               .style("stroke", "black")
-          }
-
-          // Load a slider
-          function loadSlider() {
-            var drag = d3.drag()
-            .on("drag", sliderInput)
-
-            // Default the slider at one end
-            timeSvg.datum({
-              x: timeSlider.left,
-              y: timeSlider.top
-            })
-
-            // Draw a line for the slider axis
-            timeSlider.axis = timeSvg.append("line")
-              .attr("x1", timeSlider.left)
-              .attr("x2", timeSlider.right)
-              .attr("y1", timeSlider.top)
-              .attr("y2", timeSlider.top)
-              .style("stroke", "#ddd")
-              .style("stroke-width", 5)
-
-            // Draw a circle for the slider handler
-            timeSlider.handler = timeSvg.append("circle")
-              .attr("r", 10)
-              .attr("cy", function(d) { return d.y })
-              .attr("cx", function(d) { return d.x })
-              .style("fill", "#fff")
-              .style("stroke", "#000")
-              .call(drag)
-
-            // Attach an axis showing the years
-            timeSvg.append("g")
-              .attr("transform", "translate(0," + timeSlider.bottom + ")")
-              .call(d3.axisBottom(timeSlider.scale)
-                .tickFormat(d3.format("d")))
 
           }
 
@@ -230,12 +218,12 @@
             })
 
             // Filter stats by year
-            var statsYear = stats.filter(function (d) {
+            statsYear = stats.filter(function (d) {
               return d.year == year
             })
 
             // Filter countries by year
-            var countriesYear = countries.features.filter(function (d) {
+            countriesYear = countries.features.filter(function (d) {
               return statsYear.some(function (n) {
                 if (n.id == d.id) return true
               })
@@ -245,7 +233,7 @@
             var r = d3.scaleLinear().domain(depthExtent).range([3, 10])
 
             // Draw the countries
-            var pathsDamaged = mapSvg.selectAll(".damaged").data(countriesYear)
+            var pathsDamaged = damagedGroup.selectAll(".damaged").data(countriesYear)
             pathsDamaged.exit().remove()
             pathsDamaged.enter()
               .append("path")
@@ -253,10 +241,9 @@
               .merge(pathsDamaged) 
               .attr("d", pathGenerator)
               .style("fill", "orange")
-              .style("opacity", 1)
 
             // Draw the circles for every earthquake
-            var circlesEarthquake = mapSvg.selectAll(".earthquake").data(databaseYear)
+            var circlesEarthquake = earthquakesGroup.selectAll(".earthquake").data(databaseYear)
             circlesEarthquake.exit().remove()
             circlesEarthquake.enter()
               .append("circle")
@@ -266,10 +253,10 @@
               .attr("cy", function (d) { return projection([d.lng, d.lat])[1] })
               .attr("r", 4)
               .style("fill", "blue")
-              .style("opacity", 0.7)
+              .style("opacity", 1)
             
             // Draw the circles for every earthquake in the stats
-            var circlesDisaster = mapSvg.selectAll(".disaster").data(statsYear)
+            var circlesDisaster = disastersGroup.selectAll(".disaster").data(statsYear)
             circlesDisaster.exit().remove()
             circlesDisaster.enter()
               .append("circle")
@@ -279,17 +266,16 @@
               .attr("cy", function (d) { return projection([d.lng, d.lat])[1] })
               .attr("r", 4)
               .style("fill", "blue")
-              .style("opacity", 0.7)
+              .style("opacity", 1)
             
-
-            drawPie(statsYear)
+            updateDonut(statsYear)
 
             // Update the header
             d3.select("h1").text("Earthquakes versus Us: " + year)
           }
 
           // Draw the pie chart displaying countries affected
-          function drawPie(statsYear) {
+          function updateDonut(statsYear) {
             // Determine the radious for the pie chart
             var radius = Math.min(pieSvg.attr("width"), pieSvg.attr("height")) / 2
             
@@ -338,15 +324,164 @@
               .style("stroke", "white")
               .style("opacity", 1)
               .on("mouseover", mouseoverCountry)
+              .on("mouseout", mouseoutCountry)
           }
 
           // Mouseover callback for country in pie char
           function mouseoverCountry(d) {
-            console.log(d.data)
+
+            currentCountry = d.data.country
+
+            var width = mapSvg.attr("width")
+            var height = mapSvg.attr("height")
+
+            var countryBounds = pathGenerator.bounds(countriesYear
+                .filter(d => d.name == currentCountry)[0])
+            var earthquakeLocations = statsYear.filter(d => d.country == currentCountry)
+              .map(d => projection([d.lng, d.lat]))
+
+            var bounds = countryBounds
+            var dx = bounds[1][0] - bounds[0][0]
+            var dy = bounds[1][1] - bounds[0][1]
+            var x = (bounds[0][0] + bounds[1][0]) / 2
+            var y = (bounds[0][1] + bounds[1][1]) / 2
+            var scale = .9 / Math.max(dx / width, dy / height)
+            var translate = [width / 2 - scale * x, height / 2 - scale * y]
+
+            mapGroup
+              .transition()
+              .duration(ZOOM_TIME)
+              .attr("transform", "translate(" + translate + ")scale(" + scale + ")")
+              .tween("others", function () {
+
+                var selected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name == currentCountry)
+                var unselected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name != currentCountry)
+                var disasters = disastersGroup.selectAll(".disaster")
+
+                console.log(selected)
+                console.log(unselected)
+
+                var i1 = d3.interpolateString(
+                  platesGroup.style("stroke-width"), 
+                  (4 / scale) + "px")
+                var i2 = d3.interpolateString(
+                  countriesGroup.style("stroke-width"), 
+                  (1 / scale) + "px")
+                var i3 = d3.interpolateString(
+                  unselected.style("opacity"),
+                  "0")
+                var i4 = d3.interpolateString(
+                  selected.style("opacity"),
+                  "1")
+                var i5 = d3.interpolateString(
+                  earthquakesGroup.style("opacity"),
+                  "0")
+                var i6 = d3.interpolateString(
+                  disasters.attr("r"),
+                  16 / scale + "px")
+
+                return function(t) {
+                  platesGroup.style("stroke-width", i1(t))
+                  countriesGroup.style("stroke-width", i2(t))
+                  unselected.style("opacity", i3(t))
+                  selected.style("opacity", i4(t))
+                  earthquakesGroup.style("opacity", i5(t))
+                  disasters.attr("r", i6(t))
+                }
+              })
+
+          }
+
+          function mouseoutCountry(d) {
+
+            mapGroup.transition()
+              .duration(ZOOM_TIME)
+              .attr("stroke-width", 1).attr("transform", "")
+              .tween("others", function () {
+
+                var selected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name == currentCountry)
+                var unselected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name != currentCountry)
+                var disasters = disastersGroup.selectAll(".disaster")
+
+
+                var i1 = d3.interpolateString(
+                  platesGroup.style("stroke-width"), 
+                  1 + "px")
+                var i2 = d3.interpolateString(
+                  countriesGroup.style("stroke-width"), 
+                  1 + "px")
+                var i3 = d3.interpolateString(
+                  unselected.style("opacity"),
+                  "1")
+                var i4 = d3.interpolateString(
+                  selected.style("opacity"),
+                  "1")
+                var i5 = d3.interpolateString(
+                  earthquakesGroup.style("opacity"),
+                  "1")
+               var i6 = d3.interpolateString(
+                  disasters.attr("r"),
+                  4 + "px")
+
+                return function(t) {
+                  platesGroup.style("stroke-width", i1(t))
+                  countriesGroup.style("stroke-width", i2(t))
+                  unselected.style("opacity", i3(t))
+                  selected.style("opacity", i4(t))
+                  earthquakesGroup.style("opacity", i5(t))
+                  disasters.attr("r", i6(t))
+                }
+              })
+              .on("end", function () {
+                currentCountry = null
+              })
+
+
+          }
+
+          // Load a slider
+          function loadSlider() {
+            var drag = d3.drag()
+            .on("drag", sliderYear)
+
+            // Default the slider at one end
+            timeSvg.datum({
+              x: timeSlider.left,
+              y: timeSlider.top
+            })
+
+            // Draw a line for the slider axis
+            timeSlider.axis = timeSvg.append("line")
+              .attr("x1", timeSlider.left)
+              .attr("x2", timeSlider.right)
+              .attr("y1", timeSlider.top)
+              .attr("y2", timeSlider.top)
+              .style("stroke", "#ddd")
+              .style("stroke-width", 5)
+
+            // Draw a circle for the slider handler
+            timeSlider.handler = timeSvg.append("circle")
+              .attr("r", 10)
+              .attr("cy", function(d) { return d.y })
+              .attr("cx", function(d) { return d.x })
+              .style("fill", "#fff")
+              .style("stroke", "#000")
+              .call(drag)
+
+            // Attach an axis showing the years
+            timeSvg.append("g")
+              .attr("transform", "translate(0," + timeSlider.bottom + ")")
+              .call(d3.axisBottom(timeSlider.scale)
+                .tickFormat(d3.format("d")))
+
           }
 
           // Slider callback for changing time
-          function sliderInput(d) {
+          function sliderYear(d) {
             var xmin = timeSlider.left
             var xmax = timeSlider.right
 
