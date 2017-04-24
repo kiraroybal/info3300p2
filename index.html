@@ -35,7 +35,7 @@
         <table width="1300">
           <tbody>
             <tr>
-              <td id="hover"></td>
+              <td id="tooltip" height="30"></td>
             </tr>
             <tr>
               <td>
@@ -321,6 +321,8 @@
               .attr("r", 4)
               .style("fill", "blue")
               .style("opacity", 1)
+              .on("mouseover", mouseoverEarthquake)
+              .on("mouseout", mouseoutEarthquake)
             
             // Draw the circles for every earthquake in the stats
             var circlesDisaster = disastersGroup.selectAll(".disaster").data(statsYear)
@@ -334,6 +336,8 @@
               .attr("r", 4)
               .style("fill", "blue")
               .style("opacity", 1)
+              .on("mouseover", mouseoverEarthquake)
+              .on("mouseout", mouseoutEarthquake)
             
             statText4.text((databaseYear.length + statsYear.length) + " Earthquakes")
 
@@ -341,6 +345,20 @@
 
             // Update the header
             d3.select("h1").text("Earthquakes versus Us: " + year)
+          }
+
+          function mouseoverEarthquake(d) {
+            var message = d.date + " at " + d.time
+            message = message + ". " + d.magnitude + " on the Richter scale at depth of "
+            message = message + d.depth + " km."
+            if (d.deaths) {
+              message = message + "Caused " + d.deaths + " deaths in " + d.country
+            }
+            d3.select("#tooltip").text(message)
+          }
+
+          function mouseoutEarthquake(d) {
+            d3.select("#tooltip").text("")
           }
 
           // Draw the pie chart displaying countries affected
@@ -380,8 +398,8 @@
 
             // An arc configure for maximum donutness
             var arc = d3.arc()
-              .innerRadius(radius * 3 / 8)
-              .outerRadius(radius * 5 / 8)
+              .innerRadius(radius * 1 / 8)
+              .outerRadius(radius * 4 / 8)
 
             var pieData = pie(countryDeaths)
 
@@ -410,7 +428,7 @@
                 .endAngle(pieData[i].endAngle)
               var pieEachData = pieEach(statsEach)
               var arcEach = d3.arc()
-                .innerRadius(radius * 5 / 8)
+                .innerRadius(radius * 4 / 8)
                 .outerRadius(radius * 7 / 8)
               
               for (var j = 0; j < statsEach.length; j++) {
@@ -438,6 +456,15 @@
 
             // Assign current country
             currentCountry = d.data.country
+
+            pieSvg.selectAll("path")
+              .filter(function (d) {
+                if (d.data) {
+                  return d.data.country != currentCountry
+                }
+                return true
+              })
+              .style("opacity", 0.2)
 
             // Get the width and height of the map SVG
             var width = mapSvg.attr("width")
@@ -604,6 +631,9 @@
                 currentCountry = null
               })
 
+            pieSvg.selectAll("path")
+              .style("opacity", 1)
+
             var totalDeaths = d3.sum(statsYear, d => d.deaths)
             var numberDisasters = statsYear.length
             statText1.text("")
@@ -611,12 +641,21 @@
             statText3.text(numberDisasters + " Disasters")
           }
 
-          // Mouseover callback for country in pie char
+          // Mouseover callback for country in pie chart
           function mouseoverDisaster(datum) {
 
             // Assign current country
             currentCountry = datum.country
             currentDisaster = datum
+
+            pieSvg.selectAll("path")
+              .filter(function (d) {
+                if (d.data) {
+                  return d.data.country != currentCountry
+                }
+                return d != currentDisaster
+              })
+              .style("opacity", 0.2)
 
             // Get the width and height of the map SVG
             var width = mapSvg.attr("width")
@@ -714,6 +753,8 @@
                 }
               })
 
+            mouseoverEarthquake(currentDisaster)
+
             var statsCurrentCountry = statsYear.filter(d => d.country == currentCountry) 
             var totalDeaths = d3.sum(statsCurrentCountry, d => d.deaths)
             var numberDisasters = statsCurrentCountry.length
@@ -784,6 +825,10 @@
                 currentDisaster = null
               })
 
+            pieSvg.selectAll("path")
+              .style("opacity", 1)
+
+            mouseoutEarthquake()
             var totalDeaths = d3.sum(statsYear, d => d.deaths)
             var numberDisasters = statsYear.length
             statText1.text("")
