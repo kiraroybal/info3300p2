@@ -579,399 +579,6 @@
             
           }
 
-          // Mouseover callback for country in pie char
-          function mouseoverCountry(d) {
-
-            // Assign current country
-            currentCountry = d.data.country
-
-            pieSvg.selectAll("path")
-              .filter(function (d) {
-                if (d.data) {
-                  return d.data.country != currentCountry
-                }
-                return d.country != currentCountry
-              })
-              .style("opacity", 0.2)
-
-            // Get the width and height of the map SVG
-            var width = mapSvg.attr("width")
-            var height = mapSvg.attr("height")
-
-            // Compute bounds for the country we are looking at
-            var countryBounds = pathGenerator.bounds(countriesYear
-                .filter(d => d.name == currentCountry)[0])
-            // Compute the earthquake locations
-            var earthquakeLocations = statsYear.filter(d => d.country == currentCountry)
-              .map(d => projection([d.lng, d.lat]))
-
-            // Update bounds to include the earthquakes
-            var bounds = countryBounds
-            for (var i; i < earthquakeLocations.length; i++) {
-              var loc = earthquakeLocations[i]
-              var lng = loc[0]
-              var lat = loc[1]
-              if (lng < bounds[0][0]) {
-                bounds[0][0] = lng
-              }
-              if (lng > bounds[1][0]) {
-                bounds[1][0] = lng
-              }
-              if (lat > bounds[0][1]) {
-                bounds[0][1] = lat
-              }
-              if (lat < bounds[1][1]) {
-                bounds[1][1] = lat
-              }
-            }
-
-            // Compute the scale and translate
-            var dx = bounds[1][0] - bounds[0][0]
-            var dy = bounds[1][1] - bounds[0][1]
-            var x = (bounds[0][0] + bounds[1][0]) / 2
-            var y = (bounds[0][1] + bounds[1][1]) / 2
-            var scale = .9 / Math.max(dx / width, dy / height)
-            var translate = [width / 2 - scale * x, height / 2 - scale * y]
-
-            // Zoom to the bounding box
-            mapGroup
-              .transition()
-              .duration(ZOOM_TIME)
-              .attr("transform", "translate(" + translate + ")scale(" + scale + ")")
-              .tween("others", function () {
-                
-                // Select various elements corresponding to the current country
-                // as well as others
-                var damagedUnselected = damagedGroup.selectAll(".damaged")
-                  .filter(d => d.name != currentCountry)
-                var damagedSelected = damagedGroup.selectAll(".damaged")
-                  .filter(d => d.name == currentCountry)
-                var disasters = disastersGroup.selectAll(".disaster")
-                var disastersUnselected = disastersGroup.selectAll(".disaster")
-                  .filter(d => d.country != currentCountry)
-                var disastersSelected = disastersGroup.selectAll(".disaster")
-                  .filter(d => d.country == currentCountry)
-                
-                // Perform various scales and fades to look nice
-                var i1 = d3.interpolateString(
-                  platesGroup.style("stroke-width"), 
-                  (4 * PATH_THICK / scale) + "px")
-                var i2 = d3.interpolateString(
-                  countriesGroup.style("stroke-width"), 
-                  (PATH_THICK / scale) + "px")
-                var i3 = d3.interpolateString(
-                  damagedUnselected.style("opacity"),
-                  "0")
-                var i4 = d3.interpolateString(
-                  damagedSelected.style("opacity"),
-                  "1")
-                var i5 = d3.interpolateString(
-                  earthquakesGroup.style("opacity"),
-                  "0")
-                var i6 = d3.interpolateString(
-                  disasters.attr("r"),
-                  2 * PLOT_RADIUS / scale + "px")
-                var i7 = d3.interpolateString(
-                  disastersUnselected.style("opacity"),
-                  "0")
-                var i8 = d3.interpolateString(
-                  disastersSelected.style("opacity"),
-                  "1")
-
-                return function(t) {
-                  platesGroup.style("stroke-width", i1(t))
-                  countriesGroup.style("stroke-width", i2(t))
-                  damagedUnselected.style("opacity", i3(t))
-                  damagedSelected.style("opacity", i4(t))
-                  earthquakesGroup.style("opacity", i5(t))
-                  disasters.attr("r", i6(t))
-                  disastersUnselected.style("opacity", i7(t))
-                  disastersSelected.style("opacity", i8(t))
-                }
-              })
-              .on("end", function() {
-                earthquakesGroup.selectAll("*").attr("r", PLOT_RADIUS)
-              })
-
-            var statsCurrentCountry = statsYear.filter(d => d.country == currentCountry) 
-            var totalDeaths = d3.sum(statsCurrentCountry, d => d.deaths)
-            var numberDisasters = statsCurrentCountry.length
-            d3.select("#tooltip").text(currentCountry)
-            statText2.text(totalDeaths + " Deaths")
-            statText3.text(numberDisasters + " Disasters")
-          }
-
-          function mouseoutCountry(d) {
-
-            // Zoom back out
-            mapGroup.transition()
-              .duration(ZOOM_TIME)
-              .attr("stroke-width", 1).attr("transform", "")
-              .tween("others", function () {
-
-                // Select various elements corresponding to the current country
-                // as well as others
-                var damagedUnselected = damagedGroup.selectAll(".damaged")
-                  .filter(d => d.name != currentCountry)
-                var damagedSelected = damagedGroup.selectAll(".damaged")
-                  .filter(d => d.name == currentCountry)
-                var disasters = disastersGroup.selectAll(".disaster")
-                var disastersUnselected = disastersGroup.selectAll(".disaster")
-                  .filter(d => d.country != currentCountry)
-                var disastersSelected = disastersGroup.selectAll(".disaster")
-                  .filter(d => d.country == currentCountry)
-                
-                // Perform various scales and fades to look nice
-                var i1 = d3.interpolateString(
-                  platesGroup.style("stroke-width"), 
-                  PATH_THICK + "px")
-                var i2 = d3.interpolateString(
-                  countriesGroup.style("stroke-width"), 
-                  PATH_THICK + "px")
-                var i3 = d3.interpolateString(
-                  damagedUnselected.style("opacity"),
-                  "1")
-                var i4 = d3.interpolateString(
-                  damagedSelected.style("opacity"),
-                  "1")
-                var i5 = d3.interpolateString(
-                  earthquakesGroup.style("opacity"),
-                  "1")
-                var i6 = d3.interpolateString(
-                  disasters.attr("r"),
-                  PLOT_RADIUS + "px")
-                var i7 = d3.interpolateString(
-                  disastersUnselected.style("opacity"),
-                  "1")
-                var i8 = d3.interpolateString(
-                  disastersSelected.style("opacity"),
-                  "1")
-
-                return function(t) {
-                  platesGroup.style("stroke-width", i1(t))
-                  countriesGroup.style("stroke-width", i2(t))
-                  damagedUnselected.style("opacity", i3(t))
-                  damagedSelected.style("opacity", i4(t))
-                  earthquakesGroup.style("opacity", i5(t))
-                  disasters.attr("r", i6(t))
-                  disastersUnselected.style("opacity", i7(t))
-                  disastersSelected.style("opacity", i8(t))
-                }
-              })
-              .on("end", function () {
-                currentCountry = null
-                reset()
-              })
-
-            pieSvg.selectAll("path")
-              .style("opacity", 1)
-
-            var totalDeaths = d3.sum(statsYear, d => d.deaths)
-            var numberDisasters = statsYear.length
-            d3.select("#tooltip").text("")
-            statText2.text(totalDeaths + " Deaths")
-            statText3.text(numberDisasters + " Disasters")
-          }
-
-          // Mouseover callback for country in pie chart
-          function mouseoverDisaster(datum) {
-
-            // Assign current country
-            currentCountry = datum.country
-            currentDisaster = datum
-
-            pieSvg.selectAll("path")
-              .filter(function (d) {
-                if (d.data) {
-                  return d.data.country != currentCountry
-                }
-                return d != currentDisaster
-              })
-              .style("opacity", 0.2)
-
-            // Get the width and height of the map SVG
-            var width = mapSvg.attr("width")
-            var height = mapSvg.attr("height")
-
-            // Compute bounds for the country we are looking at
-            var countryBounds = pathGenerator.bounds(countriesYear
-                .filter(d => d.name == currentCountry)[0])
-            // Compute the earthquake locations
-            var earthquakeLocations = statsYear.filter(d => d.country == currentCountry)
-              .map(d => projection([d.lng, d.lat]))
-
-            // Update bounds to include the earthquakes
-            var bounds = countryBounds
-            for (var i; i < earthquakeLocations.length; i++) {
-              var loc = earthquakeLocations[i]
-              var lng = loc[0]
-              var lat = loc[1]
-              if (lng < bounds[0][0]) {
-                bounds[0][0] = lng
-              }
-              if (lng > bounds[1][0]) {
-                bounds[1][0] = lng
-              }
-              if (lat > bounds[0][1]) {
-                bounds[0][1] = lat
-              }
-              if (lat < bounds[1][1]) {
-                bounds[1][1] = lat
-              }
-            }
-
-            // Compute the scale and translate
-            var dx = bounds[1][0] - bounds[0][0]
-            var dy = bounds[1][1] - bounds[0][1]
-            var x = (bounds[0][0] + bounds[1][0]) / 2
-            var y = (bounds[0][1] + bounds[1][1]) / 2
-            var scale = .9 / Math.max(dx / width, dy / height)
-            var translate = [width / 2 - scale * x, height / 2 - scale * y]
-
-            // Zoom to the bounding box
-            mapGroup
-              .transition()
-              .duration(ZOOM_TIME)
-              .attr("transform", "translate(" + translate + ")scale(" + scale + ")")
-              .tween("others", function () {
-                
-                // Select various elements corresponding to the current country
-                // as well as others
-                var damagedUnselected = damagedGroup.selectAll(".damaged")
-                  .filter(d => d.name != currentCountry)
-                var damagedSelected = damagedGroup.selectAll(".damaged")
-                  .filter(d => d.name == currentCountry)
-                var disasters = disastersGroup.selectAll(".disaster")
-                var disastersUnselected = disastersGroup.selectAll(".disaster")
-                  .filter(d => d.country != currentCountry || d.date != currentDisaster.date || d.time != currentDisaster.time)
-                var disastersSelected = disastersGroup.selectAll(".disaster")
-                  .filter(d => d.country == currentCountry && d.date == currentDisaster.date && d.time == currentDisaster.time)
-                
-                // Perform various scales and fades to look nice
-                var i1 = d3.interpolateString(
-                  platesGroup.style("stroke-width"), 
-                  (4 * PATH_THICK / scale) + "px")
-                var i2 = d3.interpolateString(
-                  countriesGroup.style("stroke-width"), 
-                  (PATH_THICK / scale) + "px")
-                var i3 = d3.interpolateString(
-                  damagedUnselected.style("opacity"),
-                  "0")
-                var i4 = d3.interpolateString(
-                  damagedSelected.style("opacity"),
-                  "1")
-                var i5 = d3.interpolateString(
-                  earthquakesGroup.style("opacity"),
-                  "0")
-                var i6 = d3.interpolateString(
-                  disasters.attr("r"),
-                  2 * PLOT_RADIUS / scale + "px")
-                var i7 = d3.interpolateString(
-                  disastersUnselected.style("opacity"),
-                  "0")
-                var i8 = d3.interpolateString(
-                  disastersSelected.style("opacity"),
-                  "1")
-
-                return function(t) {
-                  platesGroup.style("stroke-width", i1(t))
-                  countriesGroup.style("stroke-width", i2(t))
-                  damagedUnselected.style("opacity", i3(t))
-                  damagedSelected.style("opacity", i4(t))
-                  earthquakesGroup.style("opacity", i5(t))
-                  disasters.attr("r", i6(t))
-                  disastersUnselected.style("opacity", i7(t))
-                  disastersSelected.style("opacity", i8(t))
-                }
-              })
-              .on("end", function() {
-                earthquakesGroup.selectAll("*").attr("r", PLOT_RADIUS)
-              })
-
-            mouseoverEarthquake(currentDisaster)
-
-            var statsCurrentCountry = statsYear.filter(d => d.country == currentCountry) 
-            var totalDeaths = d3.sum(statsCurrentCountry, d => d.deaths)
-            var numberDisasters = statsCurrentCountry.length
-            //d3.select("#tooltip").text(currentCountry)
-            statText2.text(currentDisaster.deaths + " Deaths")
-            statText3.text(currentDisaster.country)
-          }
-
-          function mouseoutDisaster(d) {
-
-            // Zoom back out
-            mapGroup.transition()
-              .duration(ZOOM_TIME)
-              .attr("stroke-width", 1).attr("transform", "")
-              .tween("others", function () {
-
-                // Select various elements corresponding to the current country
-                // as well as others
-                var damagedUnselected = damagedGroup.selectAll(".damaged")
-                  .filter(d => d.name != currentCountry)
-                var damagedSelected = damagedGroup.selectAll(".damaged")
-                  .filter(d => d.name == currentCountry)
-                var disasters = disastersGroup.selectAll(".disaster")
-                var disastersUnselected = disastersGroup.selectAll(".disaster")
-                  .filter(d => d.country != currentCountry || d.date != currentDisaster.date || d.time != currentDisaster.time)
-                var disastersSelected = disastersGroup.selectAll(".disaster")
-                  .filter(d => d.country == currentCountry && d.date == currentDisaster.date && d.time == currentDisaster.time)
-                
-                // Perform various scales and fades to look nice
-                var i1 = d3.interpolateString(
-                  platesGroup.style("stroke-width"), 
-                  PATH_THICK + "px")
-                var i2 = d3.interpolateString(
-                  countriesGroup.style("stroke-width"), 
-                  PATH_THICK + "px")
-                var i3 = d3.interpolateString(
-                  damagedUnselected.style("opacity"),
-                  "1")
-                var i4 = d3.interpolateString(
-                  damagedSelected.style("opacity"),
-                  "1")
-                var i5 = d3.interpolateString(
-                  earthquakesGroup.style("opacity"),
-                  "1")
-                var i6 = d3.interpolateString(
-                  disasters.attr("r"),
-                  PLOT_RADIUS + "px")
-                var i7 = d3.interpolateString(
-                  disastersUnselected.style("opacity"),
-                  "1")
-                var i8 = d3.interpolateString(
-                  disastersSelected.style("opacity"),
-                  "1")
-
-                return function(t) {
-                  platesGroup.style("stroke-width", i1(t))
-                  countriesGroup.style("stroke-width", i2(t))
-                  damagedUnselected.style("opacity", i3(t))
-                  damagedSelected.style("opacity", i4(t))
-                  earthquakesGroup.style("opacity", i5(t))
-                  disasters.attr("r", i6(t))
-                  disastersUnselected.style("opacity", i7(t))
-                  disastersSelected.style("opacity", i8(t))
-                }
-              })
-              .on("end", function () {
-                currentCountry = null
-                currentDisaster = null
-                reset()
-              })
-
-            pieSvg.selectAll("path")
-              .style("opacity", 1)
-
-            mouseoutEarthquake()
-            var totalDeaths = d3.sum(statsYear, d => d.deaths)
-            var numberDisasters = statsYear.length
-            //d3.select("#tooltip").text("")
-            statText2.text(totalDeaths + " Deaths")
-            statText3.text(numberDisasters + " Disasters")
-          }
-
           // Load a slider
           function loadSlider() {
             var drag = d3.drag()
@@ -1032,6 +639,389 @@
               timeSlider.handler.attr("cx", x)
             }
             
+          }
+
+          // Mouseover callback for country in pie char
+          function mouseoverCountry(d) {
+
+            // Assign current country
+            currentCountry = d.data.country
+
+            pieSvg.selectAll("path")
+              .filter(function (d) {
+                if (d.data) {
+                  return d.data.country != currentCountry
+                }
+                return d.country != currentCountry
+              })
+              .style("opacity", 0.2)
+
+            // Get the width and height of the map SVG
+            var width = mapSvg.attr("width")
+            var height = mapSvg.attr("height")
+
+            // Compute bounds for the country we are looking at
+            var countryBounds = pathGenerator.bounds(countriesYear
+                .filter(d => d.name == currentCountry)[0])
+            // Compute the earthquake locations
+            var earthquakeLocations = statsYear.filter(d => d.country == currentCountry)
+              .map(d => projection([d.lng, d.lat]))
+
+            // Update bounds to include the earthquakes
+            var coords = countryBounds.concat(earthquakeLocations)
+            var xcoords = d3.extent(coords, d => d[0])
+            var ycoords = d3.extent(coords, d => d[1])
+            var bounds = [[xcoords[0], ycoords[0]],
+                          [xcoords[1], ycoords[1]]]
+
+            // Compute the scale and translate
+            var dx = bounds[1][0] - bounds[0][0]
+            var dy = bounds[1][1] - bounds[0][1]
+            var x = (bounds[0][0] + bounds[1][0]) / 2
+            var y = (bounds[0][1] + bounds[1][1]) / 2
+            var scale = .9 / Math.max(dx / width, dy / height)
+            var translate = [width / 2 - scale * x, height / 2 - scale * y]
+
+            // Zoom to the bounding box
+            mapGroup
+              .transition()
+              .duration(ZOOM_TIME)
+              .attr("transform", "translate(" + translate + ")scale(" + scale + ")")
+              .tween("others", function () {
+                
+                // Select various elements corresponding to the current country
+                // as well as others
+                var damagedUnselected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name != currentCountry)
+                var damagedSelected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name == currentCountry)
+                var disasters = disastersGroup.selectAll(".disaster")
+                var disastersUnselected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country != currentCountry)
+                var disastersSelected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country == currentCountry)
+                
+                // Perform various scales and fades to look nice
+                var i1 = d3.interpolateString(
+                  platesGroup.style("stroke-width"), 
+                  (4 * PATH_THICK / scale) + "px")
+                var i2 = d3.interpolateString(
+                  countriesGroup.style("stroke-width"), 
+                  (PATH_THICK / scale) + "px")
+                var i3 = d3.interpolateString(
+                  damagedUnselected.style("opacity"),
+                  "0")
+                var i4 = d3.interpolateString(
+                  damagedSelected.style("opacity"),
+                  "1")
+                var i5 = d3.interpolateString(
+                  earthquakesGroup.style("opacity"),
+                  "0")
+                var i6 = d3.interpolateString(
+                  disasters.attr("r"),
+                  2 * PLOT_RADIUS / scale + "px")
+                var i7 = d3.interpolateString(
+                  disastersUnselected.style("opacity"),
+                  "0")
+                var i8 = null
+                if (!disastersSelected.empty()) {
+                  i8 = d3.interpolateString(
+                    disastersSelected.style("opacity"),
+                    "1")
+                }
+
+                return function(t) {
+                  platesGroup.style("stroke-width", i1(t))
+                  countriesGroup.style("stroke-width", i2(t))
+                  damagedUnselected.style("opacity", i3(t))
+                  damagedSelected.style("opacity", i4(t))
+                  earthquakesGroup.style("opacity", i5(t))
+                  disasters.attr("r", i6(t))
+                  disastersUnselected.style("opacity", i7(t))
+                  if (i8)
+                    disastersSelected.style("opacity", i8(t))
+                }
+              })
+              .on("end", function() {
+                earthquakesGroup.selectAll("*").attr("r", PLOT_RADIUS)
+              })
+
+            var statsCurrentCountry = statsYear.filter(d => d.country == currentCountry) 
+            var totalDeaths = d3.sum(statsCurrentCountry, d => d.deaths)
+            var numberDisasters = statsCurrentCountry.length
+            d3.select("#tooltip").text(currentCountry)
+            statText2.text(totalDeaths + " Deaths")
+            statText3.text(numberDisasters + " Disasters")
+          }
+
+          function mouseoutCountry(d) {
+
+            // Zoom back out
+            mapGroup.transition()
+              .duration(ZOOM_TIME)
+              .attr("stroke-width", 1).attr("transform", "")
+              .tween("others", function () {
+
+                // Select various elements corresponding to the current country
+                // as well as others
+                var damagedUnselected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name != currentCountry)
+                var damagedSelected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name == currentCountry)
+                var disasters = disastersGroup.selectAll(".disaster")
+                var disastersUnselected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country != currentCountry)
+                var disastersSelected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country == currentCountry)
+                
+                // Perform various scales and fades to look nice
+                var i1 = d3.interpolateString(
+                  platesGroup.style("stroke-width"), 
+                  PATH_THICK + "px")
+                var i2 = d3.interpolateString(
+                  countriesGroup.style("stroke-width"), 
+                  PATH_THICK + "px")
+                var i3 = d3.interpolateString(
+                  damagedUnselected.style("opacity"),
+                  "1")
+                var i4 = d3.interpolateString(
+                  damagedSelected.style("opacity"),
+                  "1")
+                var i5 = d3.interpolateString(
+                  earthquakesGroup.style("opacity"),
+                  "1")
+                var i6 = d3.interpolateString(
+                  disasters.attr("r"),
+                  PLOT_RADIUS + "px")
+                var i7 = d3.interpolateString(
+                  disastersUnselected.style("opacity"),
+                  "1")
+                var i8 = null
+                if (!disastersSelected.empty()) {
+                  i8 = d3.interpolateString(
+                    disastersSelected.style("opacity"),
+                    "1")
+                }
+
+                return function(t) {
+                  platesGroup.style("stroke-width", i1(t))
+                  countriesGroup.style("stroke-width", i2(t))
+                  damagedUnselected.style("opacity", i3(t))
+                  damagedSelected.style("opacity", i4(t))
+                  earthquakesGroup.style("opacity", i5(t))
+                  disasters.attr("r", i6(t))
+                  disastersUnselected.style("opacity", i7(t))
+                  if (i8)
+                    disastersSelected.style("opacity", i8(t))
+                }
+              })
+              .on("end", function () {
+                currentCountry = null
+                reset()
+              })
+
+            pieSvg.selectAll("path")
+              .style("opacity", 1)
+
+            var totalDeaths = d3.sum(statsYear, d => d.deaths)
+            var numberDisasters = statsYear.length
+            d3.select("#tooltip").text("")
+            statText2.text(totalDeaths + " Deaths")
+            statText3.text(numberDisasters + " Disasters")
+          }
+
+          // Mouseover callback for country in pie chart
+          function mouseoverDisaster(datum) {
+
+            // Assign current country
+            currentCountry = datum.country
+            currentDisaster = datum
+
+            pieSvg.selectAll("path")
+              .filter(function (d) {
+                if (d.data) {
+                  return d.data.country != currentCountry
+                }
+                return d != currentDisaster
+              })
+              .style("opacity", 0.2)
+
+            // Get the width and height of the map SVG
+            var width = mapSvg.attr("width")
+            var height = mapSvg.attr("height")
+
+            // Compute bounds for the country we are looking at
+            var countryBounds = pathGenerator.bounds(countriesYear
+                .filter(d => d.name == currentCountry)[0])
+            // Compute the earthquake locations
+            var earthquakeLocations = statsYear.filter(d => d.country == currentCountry)
+              .map(d => projection([d.lng, d.lat]))
+
+            // Update bounds to include the earthquakes
+            var coords = countryBounds.concat(earthquakeLocations)
+            var xcoords = d3.extent(coords, d => d[0])
+            var ycoords = d3.extent(coords, d => d[1])
+            var bounds = [[xcoords[0], ycoords[0]],
+                          [xcoords[1], ycoords[1]]]
+
+            // Compute the scale and translate
+            var dx = bounds[1][0] - bounds[0][0]
+            var dy = bounds[1][1] - bounds[0][1]
+            var x = (bounds[0][0] + bounds[1][0]) / 2
+            var y = (bounds[0][1] + bounds[1][1]) / 2
+            var scale = .9 / Math.max(dx / width, dy / height)
+            var translate = [width / 2 - scale * x, height / 2 - scale * y]
+
+            // Zoom to the bounding box
+            mapGroup
+              .transition()
+              .duration(ZOOM_TIME)
+              .attr("transform", "translate(" + translate + ")scale(" + scale + ")")
+              .tween("others", function () {
+                
+                // Select various elements corresponding to the current country
+                // as well as others
+                var damagedUnselected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name != currentCountry)
+                var damagedSelected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name == currentCountry)
+                var disasters = disastersGroup.selectAll(".disaster")
+                var disastersUnselected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country != currentCountry || d.date != currentDisaster.date || d.time != currentDisaster.time)
+                var disastersSelected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country == currentCountry && d.date == currentDisaster.date && d.time == currentDisaster.time)
+                
+                // Perform various scales and fades to look nice
+                var i1 = d3.interpolateString(
+                  platesGroup.style("stroke-width"), 
+                  (4 * PATH_THICK / scale) + "px")
+                var i2 = d3.interpolateString(
+                  countriesGroup.style("stroke-width"), 
+                  (PATH_THICK / scale) + "px")
+                var i3 = d3.interpolateString(
+                  damagedUnselected.style("opacity"),
+                  "0")
+                var i4 = d3.interpolateString(
+                  damagedSelected.style("opacity"),
+                  "1")
+                var i5 = d3.interpolateString(
+                  earthquakesGroup.style("opacity"),
+                  "0")
+                var i6 = d3.interpolateString(
+                  disasters.attr("r"),
+                  2 * PLOT_RADIUS / scale + "px")
+                var i7 = d3.interpolateString(
+                  disastersUnselected.style("opacity"),
+                  "0")
+                var i8 = null
+                if (!disastersSelected.empty()) {
+                  i8 = d3.interpolateString(
+                    disastersSelected.style("opacity"),
+                    "1")
+                }
+
+                return function(t) {
+                  platesGroup.style("stroke-width", i1(t))
+                  countriesGroup.style("stroke-width", i2(t))
+                  damagedUnselected.style("opacity", i3(t))
+                  damagedSelected.style("opacity", i4(t))
+                  earthquakesGroup.style("opacity", i5(t))
+                  disasters.attr("r", i6(t))
+                  disastersUnselected.style("opacity", i7(t))
+                  if (i8)
+                    disastersSelected.style("opacity", i8(t))
+                }
+              })
+              .on("end", function() {
+                earthquakesGroup.selectAll("*").attr("r", PLOT_RADIUS)
+              })
+
+            mouseoverEarthquake(currentDisaster)
+
+            var statsCurrentCountry = statsYear.filter(d => d.country == currentCountry) 
+            var totalDeaths = d3.sum(statsCurrentCountry, d => d.deaths)
+            var numberDisasters = statsCurrentCountry.length
+            //d3.select("#tooltip").text(currentCountry)
+            statText2.text(currentDisaster.deaths + " Deaths")
+            statText3.text(currentDisaster.country)
+          }
+
+          function mouseoutDisaster(d) {
+
+            // Zoom back out
+            mapGroup.transition()
+              .duration(ZOOM_TIME)
+              .attr("stroke-width", 1).attr("transform", "")
+              .tween("others", function () {
+
+                // Select various elements corresponding to the current country
+                // as well as others
+                var damagedUnselected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name != currentCountry)
+                var damagedSelected = damagedGroup.selectAll(".damaged")
+                  .filter(d => d.name == currentCountry)
+                var disasters = disastersGroup.selectAll(".disaster")
+                var disastersUnselected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country != currentCountry || d.date != currentDisaster.date || d.time != currentDisaster.time)
+                var disastersSelected = disastersGroup.selectAll(".disaster")
+                  .filter(d => d.country == currentCountry && d.date == currentDisaster.date && d.time == currentDisaster.time)
+                
+                // Perform various scales and fades to look nice
+                var i1 = d3.interpolateString(
+                  platesGroup.style("stroke-width"), 
+                  PATH_THICK + "px")
+                var i2 = d3.interpolateString(
+                  countriesGroup.style("stroke-width"), 
+                  PATH_THICK + "px")
+                var i3 = d3.interpolateString(
+                  damagedUnselected.style("opacity"),
+                  "1")
+                var i4 = d3.interpolateString(
+                  damagedSelected.style("opacity"),
+                  "1")
+                var i5 = d3.interpolateString(
+                  earthquakesGroup.style("opacity"),
+                  "1")
+                var i6 = d3.interpolateString(
+                  disasters.attr("r"),
+                  PLOT_RADIUS + "px")
+                var i7 = d3.interpolateString(
+                  disastersUnselected.style("opacity"),
+                  "1")
+                var i8 = null
+                if (!disastersSelected.empty()) {
+                  i8 = d3.interpolateString(
+                    disastersSelected.style("opacity"),
+                    "1")
+                }
+
+                return function(t) {
+                  platesGroup.style("stroke-width", i1(t))
+                  countriesGroup.style("stroke-width", i2(t))
+                  damagedUnselected.style("opacity", i3(t))
+                  damagedSelected.style("opacity", i4(t))
+                  earthquakesGroup.style("opacity", i5(t))
+                  disasters.attr("r", i6(t))
+                  disastersUnselected.style("opacity", i7(t))
+                  if (i8)
+                    disastersSelected.style("opacity", i8(t))
+                }
+              })
+              .on("end", function () {
+                currentCountry = null
+                currentDisaster = null
+                reset()
+              })
+
+            pieSvg.selectAll("path")
+              .style("opacity", 1)
+
+            mouseoutEarthquake()
+            var totalDeaths = d3.sum(statsYear, d => d.deaths)
+            var numberDisasters = statsYear.length
+            //d3.select("#tooltip").text("")
+            statText2.text(totalDeaths + " Deaths")
+            statText3.text(numberDisasters + " Disasters")
           }
 
         </script>
