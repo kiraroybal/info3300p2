@@ -711,9 +711,12 @@
                 var i3 = d3.interpolateString(
                   damagedUnselected.style("opacity"),
                   "0")
-                var i4 = d3.interpolateString(
-                  damagedSelected.style("opacity"),
-                  "1")
+                var i4 = null
+                if (!damagedSelected.empty()){
+                  i4 = d3.interpolateString(
+                    damagedSelected.style("opacity"),
+                    "1")
+                }
                 var i5 = d3.interpolateString(
                   earthquakesGroup.style("opacity"),
                   "0")
@@ -734,7 +737,8 @@
                   platesGroup.style("stroke-width", i1(t))
                   countriesGroup.style("stroke-width", i2(t))
                   damagedUnselected.style("opacity", i3(t))
-                  damagedSelected.style("opacity", i4(t))
+                  if (i4)
+                    damagedSelected.style("opacity", i4(t))
                   earthquakesGroup.style("opacity", i5(t))
                   disasters.attr("r", i6(t))
                   disastersUnselected.style("opacity", i7(t))
@@ -784,9 +788,12 @@
                 var i3 = d3.interpolateString(
                   damagedUnselected.style("opacity"),
                   "1")
-                var i4 = d3.interpolateString(
-                  damagedSelected.style("opacity"),
-                  "1")
+                var i4 = null
+                if (!damagedSelected.empty()){
+                  i4 = d3.interpolateString(
+                    damagedSelected.style("opacity"),
+                    "1")
+                }
                 var i5 = d3.interpolateString(
                   earthquakesGroup.style("opacity"),
                   "1")
@@ -807,7 +814,8 @@
                   platesGroup.style("stroke-width", i1(t))
                   countriesGroup.style("stroke-width", i2(t))
                   damagedUnselected.style("opacity", i3(t))
-                  damagedSelected.style("opacity", i4(t))
+                  if (i4)
+                    damagedSelected.style("opacity", i4(t))
                   earthquakesGroup.style("opacity", i5(t))
                   disasters.attr("r", i6(t))
                   disastersUnselected.style("opacity", i7(t))
@@ -901,9 +909,12 @@
                 var i3 = d3.interpolateString(
                   damagedUnselected.style("opacity"),
                   "0")
-                var i4 = d3.interpolateString(
-                  damagedSelected.style("opacity"),
-                  "1")
+                var i4 = null
+                if (!damagedSelected.empty()){
+                  i4 = d3.interpolateString(
+                    damagedSelected.style("opacity"),
+                    "1")
+                }
                 var i5 = d3.interpolateString(
                   earthquakesGroup.style("opacity"),
                   "0")
@@ -924,7 +935,8 @@
                   platesGroup.style("stroke-width", i1(t))
                   countriesGroup.style("stroke-width", i2(t))
                   damagedUnselected.style("opacity", i3(t))
-                  damagedSelected.style("opacity", i4(t))
+                  if (i4)
+                    damagedSelected.style("opacity", i4(t))
                   earthquakesGroup.style("opacity", i5(t))
                   disasters.attr("r", i6(t))
                   disastersUnselected.style("opacity", i7(t))
@@ -976,9 +988,12 @@
                 var i3 = d3.interpolateString(
                   damagedUnselected.style("opacity"),
                   "1")
-                var i4 = d3.interpolateString(
-                  damagedSelected.style("opacity"),
-                  "1")
+                var i4 = null
+                if (!damagedSelected.empty()){
+                  i4 = d3.interpolateString(
+                    damagedSelected.style("opacity"),
+                    "1")
+                }
                 var i5 = d3.interpolateString(
                   earthquakesGroup.style("opacity"),
                   "1")
@@ -999,7 +1014,8 @@
                   platesGroup.style("stroke-width", i1(t))
                   countriesGroup.style("stroke-width", i2(t))
                   damagedUnselected.style("opacity", i3(t))
-                  damagedSelected.style("opacity", i4(t))
+                  if (i4)
+                    damagedSelected.style("opacity", i4(t))
                   earthquakesGroup.style("opacity", i5(t))
                   disasters.attr("r", i6(t))
                   disastersUnselected.style("opacity", i7(t))
