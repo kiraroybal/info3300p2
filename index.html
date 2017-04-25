@@ -54,7 +54,8 @@
           <tr>
             <td style="text-align: center;
                        font-family: Helvetica;"
-                id="current">
+                id="current"
+                height="30">
             </td>
           </tr>
         </table>
@@ -189,10 +190,13 @@
           var damagedGroup = mapGroup.append("g")
           var earthquakesGroup = mapGroup.append("g")
           var disastersGroup = mapGroup.append("g")
+          
+          // Labels for the donut chart
           var statText1 = pieSvg.append("text")
           statText1.attr("x", 150)
             .attr("y", 30)
             .attr("text-anchor", "middle")
+            .text("Countries and Disasters by Deaths")
           var statText2 = pieSvg.append("text")
           statText2.attr("x", 150)
             .attr("y", 60)
@@ -201,7 +205,29 @@
           statText3.attr("x", 150)
             .attr("y", 90)
             .attr("text-anchor", "middle")
-          
+          var statText4 = pieSvg.append("text")
+          statText4.attr("x", 60)
+            .attr("y", 430)
+            .attr("text-anchor", "left")
+            .text("Hover to view country")
+          var statText5 = pieSvg.append("text")
+          statText5.attr("x", 60)
+            .attr("y", 460)
+            .attr("text-anchor", "left")
+            .text("Hover to view disaster in country")
+          var rect1 = pieSvg.append("rect")
+            .attr("x", 20)
+            .attr("y", 420)
+            .attr("width", 30)
+            .attr("height", 20)
+            .style("fill", DAMAGED_COLOR)
+          var rect2 = pieSvg.append("rect")
+            .attr("x", 20)
+            .attr("y", 450)
+            .attr("width", 30)
+            .attr("height", 20)
+            .style("fill", DISASTER_COLOR)
+
           // Projection and path generators for map
           var projection = d3.geoKavrayskiy7()
             .scale(153)
@@ -448,7 +474,7 @@
 
           function mouseoverEarthquake(d) {
             var message = d.date + " at " + d.time
-            message = message + ". " + d.magnitude + " on the Richter scale at depth of "
+            message = message + ": Magnitude " + d.magnitude + " at depth of "
             message = message + d.depth + " km."
             if (d.deaths) {
               message = message + " Caused " + d.deaths + " deaths in " + d.country
@@ -548,7 +574,6 @@
               }
             }
 
-            statText1.text("Hover over arc for more information")
             statText2.text(totalDeaths + " Deaths")
             statText3.text(numberDisasters + " Disasters")
             
@@ -671,7 +696,7 @@
             var statsCurrentCountry = statsYear.filter(d => d.country == currentCountry) 
             var totalDeaths = d3.sum(statsCurrentCountry, d => d.deaths)
             var numberDisasters = statsCurrentCountry.length
-            statText1.text(currentCountry)
+            d3.select("#tooltip").text(currentCountry)
             statText2.text(totalDeaths + " Deaths")
             statText3.text(numberDisasters + " Disasters")
           }
@@ -743,7 +768,7 @@
 
             var totalDeaths = d3.sum(statsYear, d => d.deaths)
             var numberDisasters = statsYear.length
-            statText1.text("Hover over arc for more information")
+            d3.select("#tooltip").text("")
             statText2.text(totalDeaths + " Deaths")
             statText3.text(numberDisasters + " Disasters")
           }
@@ -868,9 +893,9 @@
             var statsCurrentCountry = statsYear.filter(d => d.country == currentCountry) 
             var totalDeaths = d3.sum(statsCurrentCountry, d => d.deaths)
             var numberDisasters = statsCurrentCountry.length
-            statText1.text(currentCountry)
+            //d3.select("#tooltip").text(currentCountry)
             statText2.text(currentDisaster.deaths + " Deaths")
-            statText3.text(currentDisaster.date)
+            statText3.text(currentDisaster.country)
           }
 
           function mouseoutDisaster(d) {
@@ -942,7 +967,7 @@
             mouseoutEarthquake()
             var totalDeaths = d3.sum(statsYear, d => d.deaths)
             var numberDisasters = statsYear.length
-            statText1.text("Hover over arc for more information")
+            //d3.select("#tooltip").text("")
             statText2.text(totalDeaths + " Deaths")
             statText3.text(numberDisasters + " Disasters")
           }

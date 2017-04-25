@@ -16,7 +16,7 @@ class StatSpider(scrapy.Spider):
       yield {
         'date': "{}/{}/{}".format(td[1], td[2], td[0]),
         'year': int(td[0]),
-        'time': "{}:{}".format(td[3], td[4]),
+        'time': "{:0>2}:{:0>2}".format(td[3], td[4]),
         'country': td[6],
         'lat': float(td[7]),
         'lng': float(td[8]),
